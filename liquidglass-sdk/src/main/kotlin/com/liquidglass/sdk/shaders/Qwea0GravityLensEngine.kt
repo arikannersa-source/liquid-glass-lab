@@ -47,24 +47,28 @@ class Qwea0GravityLensEngine : LiquidGlassEngine {
         return GlassParameters(
             variant = variant,
             appearance = appearance,
-            refractionStrength = 1.0f,
+            refractionStrength = if (isClear) 1.20f else 1.12f,
             glassThicknessDp = if (isClear) 24f else 22f,
-            edgeCurvature = 1.0f, // Maps to inverse-power exponent p = 2.0
-            lensDistortion = 0.10f,
-            blurRadiusDp = if (isClear) 1.5f else 10.0f,
-            transparency = if (isClear) 0.88f else 0.62f,
-            tintColorArgb = 0xFFFFFFFFL,
-            tintOpacity = if (isClear) 0.05f else 0.16f,
-            chromaticAberration = if (isClear) 0.40f else 0.28f,
-            specularIntensity = 1.0f,
+            edgeCurvature = 1.15f,
+            lensDistortion = 0.14f,
+            blurRadiusDp = if (isClear) 1.0f else 4.5f,
+            transparency = if (isClear) 0.92f else 0.78f,
+            tintColorArgb = if (appearance == GlassAppearance.DARK) 0xFF161820L else 0xFFFFFFFFL,
+            tintOpacity = when {
+                isClear -> 0.03f
+                appearance == GlassAppearance.ADAPTIVE -> 0.05f
+                else -> 0.14f
+            },
+            chromaticAberration = if (isClear) 0.35f else 0.26f,
+            specularIntensity = 1.05f,
             lightAngleDegrees = 225f,
             edgeIllumination = 1.0f,
-            shadowIntensity = 0.80f,
+            shadowIntensity = 0.85f,
             cornerRadiusDp = 28f,
             touchDeformation = 1.0f,
             animationSpeed = 1.0f,
             morphSmoothingDp = 28f,
-            outwardSamplingOverride = false // QWEA0 defaults to inward (-1)
+            outwardSamplingOverride = true // Enable outward convex rim sampling for closest iOS match
         )
     }
 

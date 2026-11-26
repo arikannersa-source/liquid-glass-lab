@@ -19,15 +19,16 @@ object GlassEngineRegistry {
     private val enginesMap: LinkedHashMap<String, LiquidGlassEngine> = linkedMapOf()
 
     init {
-        register(ShayannIos27Engine())
-        register(KyantBackdropEngine())
-        register(VitroIos26Engine())
-        register(HazeGlassEngine())
-        register(SohumSnellEngine())
-        register(FlutterSeaGlassEngine())
-        register(MochiG2Engine())
-        register(Qwea0GravityLensEngine())
-        register(FrostedBaselineEngine())
+        // Ranked #1 to #9 by empirical optical & shader accuracy to Apple iOS 26/27 Liquid Glass:
+        register(ShayannIos27Engine())      // #1: iOS 27 measured outward refraction + dual-strip sharp rim + Oklab
+        register(FlutterSeaGlassEngine())   // #2: Reverse-engineered CASDFElementLayer HDR glint + raised-rim bevel shadow
+        register(VitroIos26Engine())        // #3: iPhone iOS 26 side-by-side calibrated pale/deep curves + vibrant rim
+        register(HazeGlassEngine())         // #4: Haze 2.1 dome-blended distance + 4 profiles + fold envelope
+        register(SohumSnellEngine())        // #5: Exact 3D BK7 Snell + Fresnel slab + macOS 26 transfer curve
+        register(MochiG2Engine())           // #6: Apple G2 continuous supercircle + dual-zone bevel + erfp ring shadow
+        register(KyantBackdropEngine())     // #7: 7-band rainbow dispersion + circleMap + 1.5x corner smoothing
+        register(Qwea0GravityLensEngine())  // #8: Inverse-power gravity lens + absorbing tint
+        register(FrostedBaselineEngine())   // #9: Non-refractive frosted glassmorphism control baseline
     }
 
     /** Registers or replaces a [LiquidGlassEngine] implementation by its [LiquidGlassEngine.engineKey]. */

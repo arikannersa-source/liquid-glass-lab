@@ -6,6 +6,22 @@ This document records the empirical findings from inspecting actual shader sourc
 
 ---
 
+## Canonical `#1`–`#9` Ranking by Fidelity to Apple iOS 26/27 Liquid Glass
+
+| Rank | Engine | Key | Why It Ranks Here Against Genuine iOS Liquid Glass |
+| :- | :--- | :--- | :--- |
+| **#1** | **Shayann iOS 27** | `shayann_ios27` | Measured directly from lossless iOS 27 captures: **outward** convex rim sampling (`uPad`), sharp unblurred rim + dual-strip wide interior blur, Apple G2 superellipse + medial-axis dome, `n=1.50` Snell meniscus, Oklab perceptual highlights & chroma boost. |
+| **#2** | **Flutter SeaGlass** | `flutter_seaglass` | Reverse-engineered from `CASDFElementLayer` / iPhone 17 Pro iOS 27: **HDR specular glint recoloring**, peripheral dark meniscus contour, directional raised-rim bevel inner shadow, 3-tap tangential rim filter, G2 superellipse. |
+| **#3** | **Vitro iOS 26** | `vitro_ios26` | Calibrated side-by-side against a physical iPhone running iOS 26: nonlinear `pale`/`deep` shadow-lift & highlight-hold transfer curves and vibrant chroma-amplifying `1.25dp` hairline rim recoloring. |
+| **#4** | **Haze 2.1 (`Spiralens`)** | `haze_glass` | Dual-strip sharp-rim detail pass + wide interior blur, dome-blended optical distance for wide bars, 4 bevel profiles (`Squircle` default), UV fold-prevention envelope (`0.90 * dist`), linear-light chroma preservation. |
+| **#5** | **Sohum BK7 Snell** | `sohum_snell` | Exact 3D **BK7 crown-glass (`n=1.52`) Snell's Law** meniscus slab + unpolarized Fresnel `(Rs+Rp)/2` + macOS 26 Control Center measured `0.58L + 34` transfer curve. |
+| **#6** | **Mochi G2** | `mochi_g2` | Apple G2 continuous supercircle (`lnNorm`), dual-strip sharp-rim/blurred-interior sampling, analytical `erfp` Gaussian ring shadow, opposing outer/inner dual-zone bevel. |
+| **#7** | **Kyant0 Backdrop** | `kyant_backdrop` | Visually tuned rather than Apple-measured: pre-blurs before refraction and samples inward via `circleMap`, with dramatic 7-band rainbow corner dispersion (`R/O/Y/G/C/B/P`) and `1.5x` corner smoothing. |
+| **#8** | **QWEA0 Gravity Lens** | `qwea0_gravity` | Heuristic inverse-power `(1+4t)^-p` falloff with pre-blur and `G1` circular corners; includes absorbing+scattering tint and inward/outward toggle. |
+| **#9** | **Frosted Baseline** | `frosted_baseline` | Control baseline: flat Gaussian blur + uniform translucent fill + `1dp` border (zero optical refraction, zero magnification, zero dispersion, zero `smin` morphing). |
+
+---
+
 ## 1. Investigation of Initial Candidates & Additional Discoveries
 
 ### A. Initial Candidates Specified in Request

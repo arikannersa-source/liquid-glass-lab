@@ -47,18 +47,22 @@ class FlutterSeaGlassEngine : LiquidGlassEngine {
         return GlassParameters(
             variant = variant,
             appearance = appearance,
-            refractionStrength = 1.0f,
-            glassThicknessDp = if (isClear) 20f else 20f, // 20 pt bevel from iOS 27 defaults
+            refractionStrength = if (isClear) 1.20f else 1.12f,
+            glassThicknessDp = 22f,
             edgeCurvature = 1.0f,
-            lensDistortion = 0.14f,
-            blurRadiusDp = if (isClear) 2.0f else 8.0f,
-            transparency = if (isClear) 0.88f else 0.56f,
-            tintColorArgb = if (appearance == GlassAppearance.DARK) 0xFF1C1C22L else 0xFFFFFFFFL,
-            tintOpacity = if (isClear) 0.06f else 0.18f,
-            chromaticAberration = 0.20f,
-            specularIntensity = 1.0f,
+            lensDistortion = if (isClear) 0.18f else 0.14f,
+            blurRadiusDp = if (isClear) 1.0f else 5.0f,
+            transparency = if (isClear) 0.92f else 0.78f,
+            tintColorArgb = if (appearance == GlassAppearance.DARK) 0xFF14161EL else 0xFFFFFFFFL,
+            tintOpacity = when {
+                isClear -> 0.03f
+                appearance == GlassAppearance.ADAPTIVE -> 0.05f
+                else -> 0.14f
+            },
+            chromaticAberration = if (isClear) 0.28f else 0.22f,
+            specularIntensity = 1.08f,
             lightAngleDegrees = 270f, // Apple top-light axis (pi/2)
-            edgeIllumination = 1.0f,
+            edgeIllumination = 1.05f,
             shadowIntensity = 1.0f,
             cornerRadiusDp = 28f,
             touchDeformation = 1.0f,

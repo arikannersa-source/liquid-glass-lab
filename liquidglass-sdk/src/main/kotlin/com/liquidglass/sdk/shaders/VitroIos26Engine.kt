@@ -47,18 +47,22 @@ class VitroIos26Engine : LiquidGlassEngine {
         return GlassParameters(
             variant = variant,
             appearance = appearance,
-            refractionStrength = 1.0f,
-            glassThicknessDp = if (isClear) 22f else 20f,
+            refractionStrength = if (isClear) 1.18f else 1.12f,
+            glassThicknessDp = 22f,
             edgeCurvature = 1.0f, // Cubic slope^3
-            lensDistortion = if (isClear) 0.14f else 0.08f, // Magnification zoom
-            blurRadiusDp = if (isClear) 1.5f else 8.0f,
-            transparency = if (isClear) 0.88f else 0.58f,
-            tintColorArgb = 0xFFFFFFFFL,
-            tintOpacity = if (isClear) 0.04f else 0.10f,
-            chromaticAberration = if (isClear) 0.35f else 0.25f,
-            specularIntensity = 1.0f,
+            lensDistortion = if (isClear) 0.16f else 0.12f, // Magnification zoom
+            blurRadiusDp = if (isClear) 1.0f else 4.5f, // Keep pre-blur subtle so bevel refraction stays crisp
+            transparency = if (isClear) 0.92f else 0.76f,
+            tintColorArgb = if (appearance == GlassAppearance.DARK) 0xFF14161EL else 0xFFFFFFFFL,
+            tintOpacity = when {
+                isClear -> 0.03f
+                appearance == GlassAppearance.ADAPTIVE -> 0.04f
+                else -> 0.12f
+            },
+            chromaticAberration = if (isClear) 0.35f else 0.28f,
+            specularIntensity = 1.10f,
             lightAngleDegrees = 225f, // Top-left light
-            edgeIllumination = 1.0f,
+            edgeIllumination = 1.05f,
             shadowIntensity = 0.85f,
             cornerRadiusDp = 28f,
             touchDeformation = 1.0f,

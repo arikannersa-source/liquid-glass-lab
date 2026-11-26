@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -50,7 +49,7 @@ fun EngineCatalogSheet(
                 .padding(horizontal = 16.dp)
         ) {
             Text(
-                text = "Rendering Engines (9 Integrated)",
+                text = "Rendering Engines (Ranked #1–#9 by iOS Fidelity)",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold
             )
@@ -61,7 +60,7 @@ fun EngineCatalogSheet(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = "Keep custom slider values identical on switch",
+                    text = "Share identical slider overrides across engines",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.weight(1f)
@@ -73,13 +72,16 @@ fun EngineCatalogSheet(
             }
             Spacer(Modifier.height(10.dp))
 
+            val rankedEngines = GlassEngineRegistry.all()
             LazyColumn(
                 verticalArrangement = Arrangement.spacedBy(10.dp),
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(bottom = 24.dp)
             ) {
-                items(GlassEngineRegistry.all(), key = { it.engineKey }) { engine ->
+                items(rankedEngines.size, key = { rankedEngines[it].engineKey }) { index ->
+                    val engine = rankedEngines[index]
+                    val rank = index + 1
                     val selected = engine.id == state.selectedEngineId
                     Surface(
                         shape = RoundedCornerShape(16.dp),
@@ -105,7 +107,7 @@ fun EngineCatalogSheet(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = engine.displayName,
+                                    text = "#$rank  ${engine.displayName}",
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 15.sp,
                                     modifier = Modifier.weight(1f)

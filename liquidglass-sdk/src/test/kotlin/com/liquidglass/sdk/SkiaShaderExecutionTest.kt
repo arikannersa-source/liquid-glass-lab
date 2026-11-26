@@ -326,7 +326,7 @@ class SkiaShaderExecutionTest {
                 b.uniform("uWideStripY", ctx.wideStripY)
                 b.uniform("uWideScale", ctx.wideScale)
                 b.uniform("uRefractBand", band)
-                b.uniform("uRefractDepth", band * 0.58f * p.refractionStrength)
+                b.uniform("uRefractDepth", band * 0.82f * p.refractionStrength)
                 b.uniform("uIor", 1.50f)
                 b.uniform("uBevelPower", (2f + p.edgeCurvature * 2f).coerceIn(1.8f, 6f))
                 b.uniform("uCornerPower", (2f + p.edgeCurvature * 2f).coerceIn(2f, 5f))

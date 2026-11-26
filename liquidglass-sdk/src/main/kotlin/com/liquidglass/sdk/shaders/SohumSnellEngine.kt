@@ -47,18 +47,22 @@ class SohumSnellEngine : LiquidGlassEngine {
         return GlassParameters(
             variant = variant,
             appearance = appearance,
-            refractionStrength = 1.0f,
+            refractionStrength = if (isClear) 1.20f else 1.12f,
             glassThicknessDp = if (isClear) 24f else 22f,
             edgeCurvature = 1.0f, // Exact superellipse n=4 squircle slab
-            lensDistortion = 0.08f,
-            blurRadiusDp = if (isClear) 1.5f else 12.0f,
-            transparency = if (isClear) 0.88f else 0.58f, // Measured 58% transmission slope
-            tintColorArgb = 0xFFFFFFFFL,
-            tintOpacity = if (isClear) 0.05f else 0.134f, // Measured alpha = 0.134
-            chromaticAberration = 0.55f, // Thin-prism crown glass exaggerated ~6x
-            specularIntensity = 1.0f,
+            lensDistortion = 0.12f,
+            blurRadiusDp = if (isClear) 1.0f else 5.0f,
+            transparency = if (isClear) 0.92f else 0.76f,
+            tintColorArgb = if (appearance == GlassAppearance.DARK) 0xFF14161EL else 0xFFFFFFFFL,
+            tintOpacity = when {
+                isClear -> 0.03f
+                appearance == GlassAppearance.ADAPTIVE -> 0.06f
+                else -> 0.134f
+            },
+            chromaticAberration = 0.45f,
+            specularIntensity = 1.08f,
             lightAngleDegrees = 225f,
-            edgeIllumination = 1.0f,
+            edgeIllumination = 1.05f,
             shadowIntensity = 0.85f,
             cornerRadiusDp = 28f,
             touchDeformation = 1.0f,

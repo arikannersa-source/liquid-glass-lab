@@ -46,19 +46,23 @@ class KyantBackdropEngine : LiquidGlassEngine {
         return GlassParameters(
             variant = variant,
             appearance = appearance,
-            refractionStrength = if (isClear) 1.15f else 1.0f,
-            glassThicknessDp = if (isClear) 24f else 20f,
+            refractionStrength = if (isClear) 1.20f else 1.10f,
+            glassThicknessDp = if (isClear) 24f else 22f,
             edgeCurvature = 1.0f,
-            lensDistortion = 0.25f, // Kyant0's depthEffect radial dome
-            blurRadiusDp = if (isClear) 2.0f else 10.0f,
-            transparency = if (isClear) 0.88f else 0.62f,
-            tintColorArgb = if (appearance == GlassAppearance.DARK) 0xFF1A1A1EL else 0xFFFFFFFFL,
-            tintOpacity = if (isClear) 0.08f else 0.22f,
-            chromaticAberration = if (isClear) 0.65f else 0.45f,
-            specularIntensity = 1.0f,
+            lensDistortion = 0.22f, // Kyant0's depthEffect radial dome
+            blurRadiusDp = if (isClear) 1.0f else 4.5f, // Low pre-blur so rim refraction stays visible
+            transparency = if (isClear) 0.92f else 0.78f,
+            tintColorArgb = if (appearance == GlassAppearance.DARK) 0xFF161820L else 0xFFFFFFFFL,
+            tintOpacity = when {
+                isClear -> 0.03f
+                appearance == GlassAppearance.ADAPTIVE -> 0.05f
+                else -> 0.14f
+            },
+            chromaticAberration = if (isClear) 0.45f else 0.35f,
+            specularIntensity = 1.05f,
             lightAngleDegrees = 225f, // Top-left 45-degree specular axis (Kyant0 default)
             edgeIllumination = 1.0f,
-            shadowIntensity = 0.80f,
+            shadowIntensity = 0.85f,
             cornerRadiusDp = 28f,
             touchDeformation = 1.0f,
             animationSpeed = 1.0f,

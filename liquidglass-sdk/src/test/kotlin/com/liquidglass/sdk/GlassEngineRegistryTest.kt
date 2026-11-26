@@ -13,9 +13,23 @@ import org.junit.Test
 class GlassEngineRegistryTest {
 
     @Test
-    fun allNineEnginesAreRegisteredWithCompleteMetadata() {
+    fun allNineEnginesAreRegisteredInIosFidelityRankOrderWithCompleteMetadata() {
         val engines = GlassEngineRegistry.all()
         assertEquals(9, engines.size)
+        assertEquals(
+            listOf(
+                GlassEngineId.SHAYANN_IOS27,
+                GlassEngineId.FLUTTER_SEAGLASS,
+                GlassEngineId.VITRO_IOS26,
+                GlassEngineId.HAZE_GLASS,
+                GlassEngineId.SOHUM_SNELL,
+                GlassEngineId.MOCHI_G2,
+                GlassEngineId.KYANT_BACKDROP,
+                GlassEngineId.QWEA0_GRAVITY,
+                GlassEngineId.FROSTED_BASELINE
+            ),
+            engines.map { it.id }
+        )
         for (engine in engines) {
             assertTrue("Missing displayName on ${engine.engineKey}", engine.displayName.isNotBlank())
             assertTrue("Missing license on ${engine.engineKey}", engine.license.isNotBlank())

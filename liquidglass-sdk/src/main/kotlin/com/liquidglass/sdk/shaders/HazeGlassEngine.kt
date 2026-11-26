@@ -44,23 +44,27 @@ class HazeGlassEngine : LiquidGlassEngine {
         appearance: GlassAppearance
     ): GlassParameters {
         val isClear = variant == GlassVariant.CLEAR
-        // Incorporates xenitV1/liquid-glass-skill Spiralens-proven Android Haze defaults
+        // Spiralens squircle profile tuned for Apple iOS Liquid Glass optical clarity
         return GlassParameters(
             variant = variant,
             appearance = appearance,
-            refractionStrength = 1.0f,
-            glassThicknessDp = if (isClear) 18f else 24f,
+            refractionStrength = if (isClear) 1.22f else 1.15f,
+            glassThicknessDp = if (isClear) 22f else 24f,
             edgeCurvature = 1.0f,
-            lensDistortion = 0.20f,
-            blurRadiusDp = if (isClear) 2.0f else 26.0f,
-            transparency = if (isClear) 0.90f else 0.60f,
-            tintColorArgb = if (appearance == GlassAppearance.DARK) 0xFF1E1E24L else 0xFFFCFCFEL,
-            tintOpacity = if (isClear) 0.06f else 0.14f,
-            chromaticAberration = 0.25f,
-            specularIntensity = 0.85f,
+            lensDistortion = 0.18f,
+            blurRadiusDp = if (isClear) 1.0f else 6.5f,
+            transparency = if (isClear) 0.92f else 0.78f,
+            tintColorArgb = if (appearance == GlassAppearance.DARK) 0xFF161820L else 0xFFFCFCFEL,
+            tintOpacity = when {
+                isClear -> 0.03f
+                appearance == GlassAppearance.ADAPTIVE -> 0.06f
+                else -> 0.14f
+            },
+            chromaticAberration = 0.28f,
+            specularIntensity = 1.05f,
             lightAngleDegrees = 225f,
-            edgeIllumination = 1.0f,
-            shadowIntensity = 0.80f,
+            edgeIllumination = 1.05f,
+            shadowIntensity = 0.85f,
             cornerRadiusDp = 28f,
             touchDeformation = 1.0f,
             animationSpeed = 1.0f,

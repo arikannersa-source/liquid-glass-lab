@@ -46,19 +46,23 @@ class ShayannIos27Engine : LiquidGlassEngine {
         return GlassParameters(
             variant = variant,
             appearance = appearance,
-            refractionStrength = if (isClear) 1.15f else 1.0f,
-            glassThicknessDp = if (isClear) 24f else 26f,
-            edgeCurvature = 1.0f, // Maps to bevelPower = 4.0 (squircle bevel)
-            lensDistortion = if (isClear) 0.16f else 0.10f,
-            blurRadiusDp = if (isClear) 1.0f else 15.5f, // iOS 27 measured wide kernel 15.5 pt
-            transparency = if (isClear) 0.90f else 0.56f,
-            tintColorArgb = if (appearance == GlassAppearance.DARK) 0xFF000000L else 0xFFF1F1F1L,
-            tintOpacity = if (isClear) 0.08f else 0.44f,
-            chromaticAberration = if (isClear) 0.22f else 0.14f,
-            specularIntensity = if (isClear) 1.15f else 0.95f,
+            refractionStrength = if (isClear) 1.22f else 1.15f,
+            glassThicknessDp = 24f,
+            edgeCurvature = 1.0f, // Maps to bevelPower = 4.0 (Apple squircle bevel)
+            lensDistortion = if (isClear) 0.18f else 0.14f,
+            blurRadiusDp = if (isClear) 0.8f else 5.5f, // Liquid interior clarity while keeping rim razor-sharp
+            transparency = if (isClear) 0.92f else 0.78f,
+            tintColorArgb = if (appearance == GlassAppearance.DARK) 0xFF101218L else 0xFFF5F7FAL,
+            tintOpacity = when {
+                isClear -> 0.03f
+                appearance == GlassAppearance.ADAPTIVE -> 0.06f
+                else -> 0.16f
+            },
+            chromaticAberration = if (isClear) 0.30f else 0.24f,
+            specularIntensity = if (isClear) 1.15f else 1.08f,
             lightAngleDegrees = 270f, // Overhead iOS 27 measured light axis
-            edgeIllumination = if (isClear) 1.0f else 0.95f,
-            shadowIntensity = if (isClear) 0.70f else 0.90f,
+            edgeIllumination = 1.05f,
+            shadowIntensity = if (isClear) 0.75f else 0.90f,
             cornerRadiusDp = 28f,
             touchDeformation = 1.0f,
             animationSpeed = 1.0f,
@@ -73,7 +77,7 @@ class ShayannIos27Engine : LiquidGlassEngine {
         val p = ctx.parameters.sanitized()
         val isClear = p.variant == GlassVariant.CLEAR
         val bandPx = (p.glassThicknessDp * ctx.density).coerceAtLeast(4f)
-        val depthPx = bandPx * 0.58f * p.refractionStrength
+        val depthPx = bandPx * 0.82f * p.refractionStrength
         val bevelPower = (2.0f + p.edgeCurvature * 2.0f).coerceIn(1.8f, 6.0f)
         val cornerPower = (2.0f + p.edgeCurvature * 2.0f).coerceIn(2.0f, 5.0f)
 

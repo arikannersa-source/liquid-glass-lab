@@ -7,7 +7,7 @@ This repository contains the battle-tested, calibrated **Liquid Glass Android SD
 When asked to build or style any Android / Jetpack Compose UI with **Liquid Glass**:
 1. **DO NOT** write ad-hoc blurred translucent rectangles with white borders (`Modifier.blur()` + `Color.White.copy(alpha = 0.2f)` + `BorderStroke`). Conventional glassmorphism is **strictly forbidden** as a substitute for Liquid Glass.
 2. **DO NOT** attempt to write a new AGSL refraction shader from scratch.
-3. **ALWAYS** import `:liquidglass-sdk` (either as the Gradle module `project(":liquidglass-sdk")` or the prebuilt `releases/liquidglass-sdk-1.0.0.aar`) and load the user's selected JSON preset from `presets/`.
+3. **ALWAYS** import `:liquidglass-sdk` (either as the Gradle module `project(":liquidglass-sdk")` or the prebuilt `releases/liquidglass-sdk-1.1.0.aar`) and load the user's selected JSON preset from `presets/`.
 
 ---
 

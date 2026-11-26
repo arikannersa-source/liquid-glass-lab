@@ -34,10 +34,20 @@ class LabState(context: Context) {
     var compareVerticalSplit by mutableStateOf(false)
     var compareUseNativeDefaults by mutableStateOf(true)
 
-    var parameters by mutableStateOf(
+    private val perEngineParams = HashMap<GlassEngineId, GlassParameters>()
+
+    private var _parameters by mutableStateOf(
         GlassEngineRegistry.get(GlassEngineId.SHAYANN_IOS27)
             .defaultParameters(GlassVariant.REGULAR, GlassAppearance.ADAPTIVE)
+            .also { perEngineParams[GlassEngineId.SHAYANN_IOS27] = it }
     )
+
+    var parameters: GlassParameters
+        get() = _parameters
+        set(value) {
+            _parameters = value
+            perEngineParams[selectedEngineId] = value
+        }
 
     var viewMode by mutableStateOf(LabViewMode.FULL_SHOWCASE)
     var backgroundMode by mutableStateOf(BackgroundMode.PHOTO)
@@ -73,40 +83,35 @@ class LabState(context: Context) {
         if (selectedEngineId == id) return
         selectedEngineId = id
         if (!useIdenticalParamsOnSwitch) {
-            // Load the developer's intended upstream defaults while preserving variant, appearance, and lighting angle!
-            val devDefaults = GlassEngineRegistry.get(id)
-                .defaultParameters(parameters.variant, parameters.appearance)
-            parameters = devDefaults.copy(
-                lightAngleDegrees = parameters.lightAngleDegrees,
-                cornerRadiusDp = parameters.cornerRadiusDp,
-                animationSpeed = parameters.animationSpeed,
-                morphSmoothingDp = parameters.morphSmoothingDp
-            )
+            // Load saved tweaks for this engine if customized in this session, otherwise its calibrated Apple iOS default!
+            val target = perEngineParams[id]
+                ?: GlassEngineRegistry.get(id).defaultParameters(_parameters.variant, _parameters.appearance)
+            _parameters = target
+            perEngineParams[id] = target
+        } else {
+            perEngineParams[id] = _parameters
         }
     }
 
     fun setVariant(variant: GlassVariant) {
-        val devDefaults = activeEngine.defaultParameters(variant, parameters.appearance)
-        parameters = devDefaults.copy(
-            lightAngleDegrees = parameters.lightAngleDegrees,
-            cornerRadiusDp = parameters.cornerRadiusDp,
-            animationSpeed = parameters.animationSpeed,
-            morphSmoothingDp = parameters.morphSmoothingDp
-        )
+        val calibrated = activeEngine.defaultParameters(variant, _parameters.appearance)
+        parameters = calibrated
     }
 
     fun setAppearance(appearance: GlassAppearance) {
-        val devDefaults = activeEngine.defaultParameters(parameters.variant, appearance)
-        parameters = parameters.copy(
+        val calibrated = activeEngine.defaultParameters(_parameters.variant, appearance)
+        parameters = _parameters.copy(
             appearance = appearance,
-            tintColorArgb = devDefaults.tintColorArgb
+            tintColorArgb = calibrated.tintColorArgb,
+            tintOpacity = calibrated.tintOpacity
         )
     }
 
-    /** Restores exact developer-intended upstream optical defaults for the active engine. */
+    /** Restores exact Apple-iOS-calibrated optical defaults for the active engine. */
     fun resetToEngineOriginal() {
-        parameters = activeEngine.defaultParameters(parameters.variant, parameters.appearance)
-        statusBanner = "Reset to ${activeEngine.shortName} developer defaults"
+        val orig = activeEngine.defaultParameters(_parameters.variant, _parameters.appearance)
+        parameters = orig
+        statusBanner = "Reset to ${activeEngine.shortName} calibrated iOS defaults"
     }
 
     fun updateLightFromGravity(gx: Float, gy: Float) {

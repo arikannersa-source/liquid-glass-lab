@@ -47,18 +47,22 @@ class MochiG2Engine : LiquidGlassEngine {
         return GlassParameters(
             variant = variant,
             appearance = appearance,
-            refractionStrength = 1.0f,
+            refractionStrength = if (isClear) 1.20f else 1.12f,
             glassThicknessDp = if (isClear) 22f else 24f,
             edgeCurvature = 1.0f,
             lensDistortion = 0.16f,
-            blurRadiusDp = if (isClear) 2.0f else 14.0f,
-            transparency = if (isClear) 0.88f else 0.58f,
-            tintColorArgb = if (appearance == GlassAppearance.DARK) 0xFF1A1A20L else 0xFFFAFAFDL,
-            tintOpacity = if (isClear) 0.06f else 0.20f,
-            chromaticAberration = 0.22f,
-            specularIntensity = 1.0f,
+            blurRadiusDp = if (isClear) 1.0f else 6.0f,
+            transparency = if (isClear) 0.92f else 0.78f,
+            tintColorArgb = if (appearance == GlassAppearance.DARK) 0xFF161820L else 0xFFFAFAFDL,
+            tintOpacity = when {
+                isClear -> 0.03f
+                appearance == GlassAppearance.ADAPTIVE -> 0.05f
+                else -> 0.14f
+            },
+            chromaticAberration = 0.25f,
+            specularIntensity = 1.05f,
             lightAngleDegrees = 225f,
-            edgeIllumination = 1.0f,
+            edgeIllumination = 1.05f,
             shadowIntensity = 0.95f,
             cornerRadiusDp = 28f,
             touchDeformation = 1.0f,

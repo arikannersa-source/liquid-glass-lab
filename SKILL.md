@@ -70,19 +70,19 @@ fun LiquidGlassScaffold(presetJson: String) {
 }
 ```
 
-## Available Engines (`GlassEngineId`)
-- `SHAYANN_IOS27` (`shayann_ios27`): iOS 27 lossless-capture calibrated outward refraction + Oklab transfer + dual-strip sharp rim.
-- `VITRO_IOS26` (`vitro_ios26`): iPhone iOS 26 side-by-side calibrated pale/deep curves + vibrant rim recoloring.
-- `HAZE_GLASS` (`haze_glass`): Chris Banes Haze 2.1 dome-blended distance + 4 surface profiles + fold envelope (`Spiralens` preset included).
-- `FLUTTER_SEAGLASS` (`flutter_seaglass`): Ported macOS 26 / iOS 27 HDR glint recoloring + tangential rim filter + dark meniscus contour.
-- `SOHUM_SNELL` (`sohum_snell`): Exact BK7 (`n = 1.52`) 3D Snell slab + Fresnel transmittance + macOS 26 `0.58L + 34` transfer.
-- `MOCHI_G2` (`mochi_g2`): Apple G2 continuous supercircle + dual outer/inner refraction + `erfp` ring shadow.
-- `KYANT_BACKDROP` (`kyant_backdrop`): 7-band spectral dispersion + `circleMap` + `1.5x` corner smoothing.
-- `QWEA0_GRAVITY` (`qwea0_gravity`): Inverse-power gravitational lens + inward/outward toggle + absorbing tint.
-- `FROSTED_BASELINE` (`frosted_baseline`): Non-refractive blur + border baseline (for comparison only — never select for production Liquid Glass).
+## Available Engines (`GlassEngineId` — Ranked `#1` to `#9` by iOS Fidelity)
+1. `SHAYANN_IOS27` (`shayann_ios27`): **#1 Closest to iOS 27** — lossless-capture calibrated outward refraction + Oklab transfer + dual-strip sharp rim.
+2. `FLUTTER_SEAGLASS` (`flutter_seaglass`): **#2** — Reverse-engineered `CASDFElementLayer` / iOS 27 HDR glint recoloring + tangential rim filter + dark meniscus contour + bevel inner shadow.
+3. `VITRO_IOS26` (`vitro_ios26`): **#3** — iPhone iOS 26 side-by-side calibrated `pale`/`deep` curves + vibrant rim recoloring.
+4. `HAZE_GLASS` (`haze_glass`): **#4** — Chris Banes Haze 2.1 dome-blended distance + 4 surface profiles + fold envelope (`Spiralens` preset included).
+5. `SOHUM_SNELL` (`sohum_snell`): **#5** — Exact BK7 (`n = 1.52`) 3D Snell slab + Fresnel transmittance + macOS 26 `0.58L + 34` transfer.
+6. `MOCHI_G2` (`mochi_g2`): **#6** — Apple G2 continuous supercircle + dual outer/inner refraction + `erfp` ring shadow.
+7. `KYANT_BACKDROP` (`kyant_backdrop`): **#7** — 7-band rainbow spectral dispersion + `circleMap` + `1.5x` corner smoothing.
+8. `QWEA0_GRAVITY` (`qwea0_gravity`): **#8** — Inverse-power gravitational lens + inward/outward toggle + absorbing tint.
+9. `FROSTED_BASELINE` (`frosted_baseline`): **#9** — Non-refractive blur + border baseline (for comparison only — never select for production Liquid Glass).
 
 ## Reference Files in Repository
--Compiled AAR: `releases/liquidglass-sdk-1.0.0.aar`
+- Compiled AAR: `releases/liquidglass-sdk-1.1.0.aar`
 - Standalone AGSL Shaders: `shaders/*.agsl`
 - Portable JSON Presets: `presets/*.json`
 - Mathematical Spec (for non-Android ports): `docs/OPTICAL_SPECIFICATION.md`

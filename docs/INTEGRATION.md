@@ -4,14 +4,14 @@
 
 ---
 
-## Option A: Drop-in Compiled AAR (`releases/liquidglass-sdk-1.0.0.aar`)
+## Option A: Drop-in Compiled AAR (`releases/liquidglass-sdk-1.1.0.aar`)
 
-Copy `releases/liquidglass-sdk-1.0.0.aar` into your Android project's `app/libs/` folder and add:
+Copy `releases/liquidglass-sdk-1.1.0.aar` into your Android project's `app/libs/` folder and add:
 
 ```kotlin
 // app/build.gradle.kts
 dependencies {
-    implementation(files("libs/liquidglass-sdk-1.0.0.aar"))
+    implementation(files("libs/liquidglass-sdk-1.1.0.aar"))
     implementation("androidx.compose.ui:ui:1.12.1")
     implementation("androidx.compose.ui:ui-graphics:1.12.1")
     implementation("androidx.compose.foundation:foundation:1.12.1")

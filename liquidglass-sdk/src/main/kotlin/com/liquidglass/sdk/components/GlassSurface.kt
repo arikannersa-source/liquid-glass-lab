@@ -86,8 +86,8 @@ fun GlassSurface(
         touchDeformation = parameters.touchDeformation
     )
 
-    val touchModifier = if (interactive || onClick != null) {
-        Modifier.pointerInput(onClick) {
+    val touchModifier = when {
+        onClick != null -> Modifier.pointerInput(onClick) {
             awaitEachGesture {
                 val down = awaitFirstDown(requireUnconsumed = false)
                 pressed = true
@@ -95,12 +95,27 @@ fun GlassSurface(
                 val up = waitForUpOrCancellation()
                 pressed = false
                 if (up != null) {
-                    onClick?.invoke()
+                    onClick.invoke()
                 }
             }
         }
-    } else {
-        Modifier
+        interactive -> Modifier.pointerInput(Unit) {
+            awaitEachGesture {
+                val down = awaitFirstDown(requireUnconsumed = false, pass = androidx.compose.ui.input.pointer.PointerEventPass.Initial)
+                pressed = true
+                touchOffset = down.position
+                while (true) {
+                    val event = awaitPointerEvent(androidx.compose.ui.input.pointer.PointerEventPass.Initial)
+                    val active = event.changes.firstOrNull { it.pressed }
+                    if (active == null) {
+                        pressed = false
+                        break
+                    }
+                    touchOffset = active.position
+                }
+            }
+        }
+        else -> Modifier
     }
 
     Box(
