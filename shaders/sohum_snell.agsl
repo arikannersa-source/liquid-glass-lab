@@ -1,0 +1,234 @@
+
+uniform shader content;
+uniform float2 uSize;
+uniform float uPad;
+uniform float4 uBackdrop;
+uniform float4 uRadii;
+uniform float uDensity;
+uniform float uExtraCount;
+uniform float4 uExtraShapes[5];
+uniform float uExtraRadii[5];
+uniform float uMergeK;
+uniform float2 uTouch;
+uniform float uPress;
+uniform float uShadow;
+
+uniform float uBezelPx;
+uniform float uRefractScale;
+uniform float uProfilePower;
+uniform float uBaseT;
+uniform float uDispersionStrength;
+uniform float uTransparency;
+uniform float4 uTint;
+uniform float2 uLight;
+uniform float uSpecular;
+uniform float uEdgeIllum;
+uniform float uIsClear;
+uniform float uDarkMode;
+
+
+float radiusAt(float2 p, float4 r) {
+    float2 rr = (p.x >= 0.0) ? r.yz : r.xw;
+    return (p.y >= 0.0) ? rr.y : rr.x;
+}
+
+float sdRoundBox(float2 p, float2 halfSize, float radius) {
+    float r = min(radius, min(halfSize.x, halfSize.y));
+    float2 q = abs(p) - halfSize + float2(r);
+    return length(max(q, float2(0.0))) + min(max(q.x, q.y), 0.0) - r;
+}
+
+float sdRoundBox4(float2 p, float2 halfSize, float4 radii) {
+    float r = min(radiusAt(p, radii), min(halfSize.x, halfSize.y));
+    float2 q = abs(p) - halfSize + float2(r);
+    return length(max(q, float2(0.0))) + min(max(q.x, q.y), 0.0) - r;
+}
+
+float lnNorm(float2 v, float n) {
+    if (n <= 2.01) return length(v);
+    float2 av = max(abs(v), float2(1e-6));
+    return pow(pow(av.x, n) + pow(av.y, n), 1.0 / n);
+}
+
+float sdSquircleBox4(float2 p, float2 halfSize, float4 radii, float power) {
+    float r = min(radiusAt(p, radii), min(halfSize.x, halfSize.y));
+    float2 q = abs(p) - halfSize + float2(r);
+    float2 pos = max(q, float2(0.0));
+    float outside = (pos.x > 0.0 || pos.y > 0.0) ? lnNorm(pos, power) : 0.0;
+    return min(max(q.x, q.y), 0.0) + outside - r;
+}
+
+float sminPoly(float a, float b, float k) {
+    if (k <= 0.5) return min(a, b);
+    float h = clamp(0.5 + 0.5 * (b - a) / k, 0.0, 1.0);
+    return mix(b, a, h) - k * h * (1.0 - h);
+}
+
+float sceneSdRound(float2 local, float2 halfSize) {
+    float d = sdRoundBox4(local - halfSize, halfSize, uRadii);
+    for (int i = 0; i < 5; i++) {
+        if (float(i) >= uExtraCount) break;
+        float4 s = uExtraShapes[i];
+        float d2 = sdRoundBox(local - s.xy, s.zw, uExtraRadii[i]);
+        d = sminPoly(d, d2, uMergeK);
+    }
+    return d;
+}
+
+float sceneSdSquircle(float2 local, float2 halfSize, float power) {
+    float d = sdSquircleBox4(local - halfSize, halfSize, uRadii, power);
+    for (int i = 0; i < 5; i++) {
+        if (float(i) >= uExtraCount) break;
+        float4 s = uExtraShapes[i];
+        float d2 = sdSquircleBox4(local - s.xy, s.zw, float4(uExtraRadii[i]), power);
+        d = sminPoly(d, d2, uMergeK);
+    }
+    return d;
+}
+
+float2 sceneNormalRound(float2 local, float2 halfSize, float eps) {
+    float2 ex = float2(eps, 0.0);
+    float2 ey = float2(0.0, eps);
+    float2 g = float2(
+        sceneSdRound(local + ex, halfSize) - sceneSdRound(local - ex, halfSize),
+        sceneSdRound(local + ey, halfSize) - sceneSdRound(local - ey, halfSize)
+    );
+    float len = length(g);
+    return (len > 1e-5) ? (g / len) : float2(0.0, -1.0);
+}
+
+float2 sceneNormalSquircle(float2 local, float2 halfSize, float power, float eps) {
+    float2 ex = float2(eps, 0.0);
+    float2 ey = float2(0.0, eps);
+    float2 g = float2(
+        sceneSdSquircle(local + ex, halfSize, power) - sceneSdSquircle(local - ex, halfSize, power),
+        sceneSdSquircle(local + ey, halfSize, power) - sceneSdSquircle(local - ey, halfSize, power)
+    );
+    float len = length(g);
+    return (len > 1e-5) ? (g / len) : float2(0.0, -1.0);
+}
+
+float3 sampleBackdropRgb(float2 coord) {
+    float2 q = clamp(coord, uBackdrop.xy, uBackdrop.zw);
+    half4 c = content.eval(q);
+    return (c.a > half(0.004)) ? float3(c.rgb / c.a) : float3(0.08, 0.08, 0.10);
+}
+
+float luma709(float3 c) {
+    return dot(c, float3(0.2126, 0.7152, 0.0722));
+}
+
+half4 dropShadowOutside(float dShadow, float shadowStrength, float density) {
+    if (shadowStrength <= 0.005) return half4(0.0);
+    float spread = max(14.0 * density, 4.0);
+    float alpha = (1.0 - smoothstep(-2.0 * density, spread, dShadow)) * 0.22 * clamp(shadowStrength, 0.0, 2.0);
+    return half4(0.0, 0.0, 0.0, half(clamp(alpha, 0.0, 0.65)));
+}
+
+
+// BK7 crown glass Fraunhofer indices (from sohumsuthar/liquid-glass glass-optics.mjs)
+const float N_D = 1.5168;
+const float N_C = 1.5143;
+const float N_F = 1.5224;
+
+float squircleHeight(float x, float p) {
+    float u = 1.0 - clamp(x, 0.0, 1.0);
+    return pow(max(1.0 - pow(max(u, 1e-5), p), 1e-5), 1.0 / p);
+}
+
+float squircleSlope(float x, float p) {
+    float u = 1.0 - clamp(x, 0.004, 0.996);
+    float up = pow(u, p);
+    return pow(u, p - 1.0) / pow(max(1.0 - up, 1e-4), 1.0 - 1.0 / p);
+}
+
+// Exact unpolarized Fresnel power reflectance R(theta_i)
+float fresnelReflectance(float thetaI, float n) {
+    float ci = cos(thetaI);
+    float st = sin(thetaI) / n;
+    if (st >= 0.999) return 1.0;
+    float ct = sqrt(max(1.0 - st * st, 0.0));
+    float rs = (ci - n * ct) / max(ci + n * ct, 1e-5);
+    float rp = (n * ci - ct) / max(n * ci + ct, 1e-5);
+    return 0.5 * (rs * rs + rp * rp);
+}
+
+half4 main(float2 coord) {
+    float2 local = coord - float2(uPad);
+    float2 halfSize = uSize * 0.5;
+
+    float sd = sceneSdSquircle(local, halfSize, 4.0);
+    float coverage = clamp(0.5 - sd, 0.0, 1.0);
+    if (coverage <= 0.0) {
+        float dSh = sceneSdSquircle(local - float2(0.0, 5.0 * uDensity), halfSize, 4.0);
+        return dropShadowOutside(dSh, uShadow, uDensity);
+    }
+
+    float dist = max(-sd, 0.0);
+    float2 nrm = sceneNormalSquircle(local, halfSize, 4.0, 1.0);
+
+    float2 disp = float2(0.0);
+    float fresnelRim = 0.04;
+    if (dist < uBezelPx) {
+        float x = clamp(dist / max(uBezelPx, 1.0), 0.004, 0.996);
+        float slope = squircleSlope(x, uProfilePower);
+        float thetaS = atan(slope);
+        float sinR = clamp(sin(thetaS) / N_D, -0.999, 0.999);
+        float thetaR = asin(sinR);
+        float t = uBaseT + squircleHeight(x, uProfilePower);
+        float refl = fresnelReflectance(thetaS, N_D);
+        fresnelRim = refl;
+        float d = t * tan(thetaS - thetaR) * (1.0 - refl);
+        // Convex glass shifts background sample point inward along SDF normal
+        disp = -nrm * (d * uBezelPx * uRefractScale);
+    }
+
+    // Touch deformation lens bulge
+    float2 touchDelta = local - uTouch;
+    float touchSigma = max(min(uSize.x, uSize.y), 1.0);
+    float touchFall = exp(-dot(touchDelta, touchDelta) / (touchSigma * touchSigma)) * clamp(uPress, 0.0, 2.0);
+    disp -= touchDelta * (touchFall * 0.14);
+
+    // Thin-prism BK7 chromatic dispersion ratios
+    float rRatio = 1.0 + (((N_C - 1.0) / (N_D - 1.0)) - 1.0) * uDispersionStrength;
+    float bRatio = 1.0 + (((N_F - 1.0) / (N_D - 1.0)) - 1.0) * uDispersionStrength;
+
+    float3 rgb;
+    if (uDispersionStrength > 0.05 && length(disp) > 0.1) {
+        rgb = float3(
+            sampleBackdropRgb(coord + disp * rRatio).r,
+            sampleBackdropRgb(coord + disp).g,
+            sampleBackdropRgb(coord + disp * bRatio).b
+        );
+    } else {
+        rgb = sampleBackdropRgb(coord + disp);
+    }
+
+    // Measured macOS 26 Control Center linear compressive transfer curve:
+    // L_glass = (1 - alpha) * beta * L_backdrop + alpha, with analytical chroma restoration S = 1 / ((1 - alpha) * beta)
+    float luma = luma709(rgb);
+    float darkFactor = (uDarkMode < -0.5) ? smoothstep(0.42, 0.62, 1.0 - luma) : clamp(uDarkMode, 0.0, 1.0);
+
+    float alpha = clamp(uTint.a * (1.0 - uTransparency * 0.35) * mix(1.0, 0.25, uIsClear), 0.01, 0.65);
+    float beta = mix(0.67, 0.94, uIsClear) * mix(0.82, 1.08, uTransparency);
+    float slopeComp = clamp((1.0 - alpha) * beta, 0.25, 1.0);
+    float satRestore = clamp(1.0 / slopeComp, 1.0, 1.95);
+
+    // Restore chroma first, then apply measured compressive transfer
+    rgb = clamp(mix(float3(luma), rgb, satRestore), float3(0.0), float3(1.0));
+    float3 scrimColor = mix(uTint.rgb, float3(0.18, 0.19, 0.22), darkFactor * 0.65);
+    rgb = rgb * slopeComp + scrimColor * alpha;
+
+    // Fresnel-shaped directional specular rim ring
+    float rimMask = 1.0 - smoothstep(0.0, max(uBezelPx * 0.35, 2.5 * uDensity), dist);
+    float facing = dot(nrm, -uLight);
+    float dirLobe = pow(max(facing, 0.0), 3.2) + 0.55 * pow(max(-facing, 0.0), 3.8);
+    float rimSpec = (fresnelRim * 0.65 * uEdgeIllum + dirLobe * 0.55 * uSpecular) * rimMask;
+    float innerEdge = smoothstep(2.0 * uDensity, 0.0, dist) * (0.28 * uEdgeIllum + 0.35 * dirLobe * uSpecular);
+
+    // Subtle inner depth shadow
+    float innerSh = smoothstep(6.0 * uDensity, 0.0, dist) * (1.0 - smoothstep(2.0 * uDensity, 0.0, dist)) * 0.06 * uShadow;
+
+    rgb = clamp(rgb + float3(rimSpec + innerEdge + touchFall * 0.06) - float3(innerSh), float3(0.0), float3(1.0));
+    return half4(half3(rgb * coverage), half(coverage));
+}

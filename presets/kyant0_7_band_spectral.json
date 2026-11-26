@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "engine": "kyant_backdrop",
+  "name": "Kyant0 \u2014 7-Band Spectral",
+  "description": "Kyant0 AndroidLiquidGlass original circleMap + 7-band spectral dispersion.",
+  "parameters": {
+    "blurRadiusDp": 10,
+    "shadowIntensity": 0.800000011920929,
+    "lightAngleDegrees": 225,
+    "specularIntensity": 1,
+    "edgeIllumination": 1,
+    "glassThicknessDp": 20,
+    "tintColorArgb": "#FFFFFFFF",
+    "tintOpacity": 0.2199999988079071,
+    "chromaticAberration": 0.44999998807907104,
+    "animationSpeed": 1,
+    "touchDeformation": 1,
+    "appearance": "ADAPTIVE",
+    "lensDistortion": 0.25,
+    "edgeCurvature": 1,
+    "transparency": 0.6200000047683716,
+    "variant": "REGULAR",
+    "morphSmoothingDp": 28,
+    "refractionStrength": 1,
+    "cornerRadiusDp": 28,
+    "surfaceProfile": 1
+  }
+}

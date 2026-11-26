@@ -1,0 +1,20 @@
+Liquid Glass Lab & Reusable Android SDK (:liquidglass-sdk)
+Copyright 2026 Liquid Glass Lab Contributors
+
+Licensed under the Apache License, Version 2.0.
+
+This product includes optical shader models, empirical calibration equations,
+and Jetpack Compose / AGSL techniques adapted from permissively licensed
+open-source projects:
+- shayann07/liquidglass (Apache-2.0)
+- Kyant0/AndroidLiquidGlass (Apache-2.0)
+- itshedimisawi/vitro (Apache-2.0)
+- chrisbanes/haze haze-glass (Apache-2.0)
+- xenitV1/liquid-glass-skill (MIT)
+- sohumsuthar/liquid-glass (MIT)
+- whynotmake-it/flutter_liquid_glass (MIT)
+- feice11/mochi-compose (Apache-2.0)
+- QWEA0/Liquid-Glass-Android (MIT)
+
+See THIRD_PARTY_LICENSES.md for complete repository URLs, license texts,
+and per-engine porting attributions.

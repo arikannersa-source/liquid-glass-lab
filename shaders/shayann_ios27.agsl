@@ -1,0 +1,390 @@
+
+uniform shader content;
+uniform float2 uSize;
+uniform float uPad;
+uniform float4 uBackdrop;
+uniform float4 uRadii;
+uniform float uDensity;
+uniform float uExtraCount;
+uniform float4 uExtraShapes[5];
+uniform float uExtraRadii[5];
+uniform float uMergeK;
+uniform float2 uTouch;
+uniform float uPress;
+uniform float uShadow;
+
+uniform float uWideStripY;
+uniform float uWideScale;
+uniform float uRefractBand;
+uniform float uRefractDepth;
+uniform float uIor;
+uniform float uBevelPower;
+uniform float uCornerPower;
+uniform float uLensZoom;
+uniform float uBlurPx;
+uniform float uAberration;
+uniform float uTransparency;
+uniform float4 uTint;
+uniform float2 uLight;
+uniform float uSpecular;
+uniform float uEdgeIllum;
+uniform float uIsClear;
+uniform float uDarkMode;
+uniform float uOutward;
+
+
+float radiusAt(float2 p, float4 r) {
+    float2 rr = (p.x >= 0.0) ? r.yz : r.xw;
+    return (p.y >= 0.0) ? rr.y : rr.x;
+}
+
+float sdRoundBox(float2 p, float2 halfSize, float radius) {
+    float r = min(radius, min(halfSize.x, halfSize.y));
+    float2 q = abs(p) - halfSize + float2(r);
+    return length(max(q, float2(0.0))) + min(max(q.x, q.y), 0.0) - r;
+}
+
+float sdRoundBox4(float2 p, float2 halfSize, float4 radii) {
+    float r = min(radiusAt(p, radii), min(halfSize.x, halfSize.y));
+    float2 q = abs(p) - halfSize + float2(r);
+    return length(max(q, float2(0.0))) + min(max(q.x, q.y), 0.0) - r;
+}
+
+float lnNorm(float2 v, float n) {
+    if (n <= 2.01) return length(v);
+    float2 av = max(abs(v), float2(1e-6));
+    return pow(pow(av.x, n) + pow(av.y, n), 1.0 / n);
+}
+
+float sdSquircleBox4(float2 p, float2 halfSize, float4 radii, float power) {
+    float r = min(radiusAt(p, radii), min(halfSize.x, halfSize.y));
+    float2 q = abs(p) - halfSize + float2(r);
+    float2 pos = max(q, float2(0.0));
+    float outside = (pos.x > 0.0 || pos.y > 0.0) ? lnNorm(pos, power) : 0.0;
+    return min(max(q.x, q.y), 0.0) + outside - r;
+}
+
+float sminPoly(float a, float b, float k) {
+    if (k <= 0.5) return min(a, b);
+    float h = clamp(0.5 + 0.5 * (b - a) / k, 0.0, 1.0);
+    return mix(b, a, h) - k * h * (1.0 - h);
+}
+
+float sceneSdRound(float2 local, float2 halfSize) {
+    float d = sdRoundBox4(local - halfSize, halfSize, uRadii);
+    for (int i = 0; i < 5; i++) {
+        if (float(i) >= uExtraCount) break;
+        float4 s = uExtraShapes[i];
+        float d2 = sdRoundBox(local - s.xy, s.zw, uExtraRadii[i]);
+        d = sminPoly(d, d2, uMergeK);
+    }
+    return d;
+}
+
+float sceneSdSquircle(float2 local, float2 halfSize, float power) {
+    float d = sdSquircleBox4(local - halfSize, halfSize, uRadii, power);
+    for (int i = 0; i < 5; i++) {
+        if (float(i) >= uExtraCount) break;
+        float4 s = uExtraShapes[i];
+        float d2 = sdSquircleBox4(local - s.xy, s.zw, float4(uExtraRadii[i]), power);
+        d = sminPoly(d, d2, uMergeK);
+    }
+    return d;
+}
+
+float2 sceneNormalRound(float2 local, float2 halfSize, float eps) {
+    float2 ex = float2(eps, 0.0);
+    float2 ey = float2(0.0, eps);
+    float2 g = float2(
+        sceneSdRound(local + ex, halfSize) - sceneSdRound(local - ex, halfSize),
+        sceneSdRound(local + ey, halfSize) - sceneSdRound(local - ey, halfSize)
+    );
+    float len = length(g);
+    return (len > 1e-5) ? (g / len) : float2(0.0, -1.0);
+}
+
+float2 sceneNormalSquircle(float2 local, float2 halfSize, float power, float eps) {
+    float2 ex = float2(eps, 0.0);
+    float2 ey = float2(0.0, eps);
+    float2 g = float2(
+        sceneSdSquircle(local + ex, halfSize, power) - sceneSdSquircle(local - ex, halfSize, power),
+        sceneSdSquircle(local + ey, halfSize, power) - sceneSdSquircle(local - ey, halfSize, power)
+    );
+    float len = length(g);
+    return (len > 1e-5) ? (g / len) : float2(0.0, -1.0);
+}
+
+float3 sampleBackdropRgb(float2 coord) {
+    float2 q = clamp(coord, uBackdrop.xy, uBackdrop.zw);
+    half4 c = content.eval(q);
+    return (c.a > half(0.004)) ? float3(c.rgb / c.a) : float3(0.08, 0.08, 0.10);
+}
+
+float luma709(float3 c) {
+    return dot(c, float3(0.2126, 0.7152, 0.0722));
+}
+
+half4 dropShadowOutside(float dShadow, float shadowStrength, float density) {
+    if (shadowStrength <= 0.005) return half4(0.0);
+    float spread = max(14.0 * density, 4.0);
+    float alpha = (1.0 - smoothstep(-2.0 * density, spread, dShadow)) * 0.22 * clamp(shadowStrength, 0.0, 2.0);
+    return half4(0.0, 0.0, 0.0, half(clamp(alpha, 0.0, 0.65)));
+}
+
+
+float3 toLinearApprox(float3 c) { return c * c; }
+float3 fromLinearApprox(float3 c) { return sqrt(max(c, float3(0.0))); }
+
+float3 linearToOklab(float3 c) {
+    float l = 0.4122214708 * c.r + 0.5363325363 * c.g + 0.0514459929 * c.b;
+    float m = 0.2119034982 * c.r + 0.6806995451 * c.g + 0.1073969566 * c.b;
+    float s = 0.0883024619 * c.r + 0.2817188376 * c.g + 0.6299787005 * c.b;
+    float l_ = pow(max(l, 1e-6), 0.3333333333);
+    float m_ = pow(max(m, 1e-6), 0.3333333333);
+    float s_ = pow(max(s, 1e-6), 0.3333333333);
+    return float3(
+        0.2104542553 * l_ + 0.7936177850 * m_ - 0.0040720468 * s_,
+        1.9779984951 * l_ - 2.4285922050 * m_ + 0.4505937099 * s_,
+        0.0259040371 * l_ + 0.7827717662 * m_ - 0.8086757660 * s_);
+}
+
+float3 oklabToLinear(float3 lab) {
+    float l_ = lab.x + 0.3963377774 * lab.y + 0.2158037573 * lab.z;
+    float m_ = lab.x - 0.1055613458 * lab.y - 0.0638541728 * lab.z;
+    float s_ = lab.x - 0.0894841775 * lab.y - 1.2914855480 * lab.z;
+    float l = l_ * l_ * l_;
+    float m = m_ * m_ * m_;
+    float s = s_ * s_ * s_;
+    return float3(
+         4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s,
+        -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s,
+        -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s);
+}
+
+float3 applyOklabHighlight(float3 col, float amount, float chroma) {
+    if (amount <= 0.0001) return col;
+    float3 additive = col + float3(amount);
+    if (chroma <= 0.0001) return additive;
+    float3 lab = linearToOklab(toLinearApprox(clamp(col, float3(0.0), float3(1.0))));
+    lab.x = lab.x + amount * 0.90;
+    lab.yz = lab.yz * (1.0 + amount * 1.20);
+    float3 lifted = fromLinearApprox(clamp(oklabToLinear(lab), float3(0.0), float3(1.0)));
+    return mix(additive, lifted, clamp(chroma, 0.0, 1.0));
+}
+
+
+float bevelSlope(float e, float p) {
+    float u = 1.0 - clamp(e, 0.002, 0.998);
+    float up = pow(u, p);
+    return pow(u, p - 1.0) / pow(max(1.0 - up, 1e-4), 1.0 - 1.0 / p);
+}
+
+float snellShift(float slope, float ior) {
+    float inv = inversesqrt(1.0 + slope * slope);
+    float si = slope * inv;
+    float ci = inv;
+    float st = si / max(ior, 1.0001);
+    float ct = sqrt(max(1.0 - st * st, 0.0));
+    return (si * ct - ci * st) / max(ci * ct + si * st, 1e-4);
+}
+
+float3 sampleWideRgb(float2 coord) {
+    if (uWideStripY < 1.0) return sampleBackdropRgb(coord);
+    float2 q = clamp(coord, uBackdrop.xy, uBackdrop.zw);
+    float2 c = float2(q.x * uWideScale, uWideStripY + q.y * uWideScale);
+    half4 s = content.eval(c);
+    return (s.a > half(0.004)) ? float3(s.rgb / s.a) : sampleBackdropRgb(coord);
+}
+
+// 4-tap iOS 27 measured detail kernel (1/3 dp = 1 px at 3x)
+float3 detailCross(float2 p, float r) {
+    if (r < 0.25) return sampleBackdropRgb(p);
+    return (sampleBackdropRgb(p + float2(r, 0.0))
+          + sampleBackdropRgb(p - float2(r, 0.0))
+          + sampleBackdropRgb(p + float2(0.0, r))
+          + sampleBackdropRgb(p - float2(0.0, r))) * 0.25;
+}
+
+float2 tapRot(float2 coord) {
+    float3 q = fract(float3(coord.x, coord.y, coord.x) * 0.1031);
+    q += dot(q, q.yzx + 33.33);
+    float a = fract((q.x + q.y) * q.z) * 6.2831853;
+    return float2(cos(a), sin(a));
+}
+
+float2 rot2(float2 v, float2 r) {
+    return float2(v.x * r.x - v.y * r.y, v.x * r.y + v.y * r.x);
+}
+
+float3 scatterFine(float2 p, float rad, float2 rot) {
+    if (rad < 0.5) return sampleBackdropRgb(p);
+    float r = min(rad, 3.0 * uDensity);
+    float3 sum = sampleBackdropRgb(p) * 2.0;
+    sum += sampleBackdropRgb(p + r * rot2(float2( 1.0,  0.0), rot));
+    sum += sampleBackdropRgb(p + r * rot2(float2( 0.0,  1.0), rot));
+    sum += sampleBackdropRgb(p + r * rot2(float2(-1.0,  0.0), rot));
+    sum += sampleBackdropRgb(p + r * rot2(float2( 0.0, -1.0), rot));
+    return sum * (1.0 / 6.0);
+}
+
+half4 main(float2 coord) {
+    float2 local = coord - float2(uPad);
+    float2 halfSize = uSize * 0.5;
+    float2 p = local - halfSize;
+
+    float d = sceneSdSquircle(local, halfSize, uCornerPower);
+    float coverage = clamp(0.5 - d, 0.0, 1.0);
+    float outerBand = clamp(1.0 - abs(d - 0.35 * uDensity) / max(0.85 * uDensity, 1.0), 0.0, 1.0);
+
+    if (coverage <= 0.0) {
+        float dSh = sceneSdSquircle(local - float2(0.0, 5.0 * uDensity), halfSize, uCornerPower);
+        half4 sh = dropShadowOutside(dSh, uShadow, uDensity);
+        if (outerBand > 0.001 && uEdgeIllum > 0.01) {
+            float2 on = sceneNormalSquircle(local, halfSize, uCornerPower, 1.0);
+            float side = pow(max(1.0 - abs(dot(on, uLight)), 0.0), 0.75);
+            float oc = clamp(outerBand * 0.16 * uEdgeIllum * mix(0.25, 1.0, side), 0.0, 0.55);
+            sh.a = max(sh.a, half(oc));
+        }
+        return sh;
+    }
+
+    float eps = clamp(uRefractBand * 0.25, 1.0, 12.0);
+    float2 g = float2(
+        sceneSdSquircle(local + float2(eps, 0.0), halfSize, uCornerPower) - sceneSdSquircle(local - float2(eps, 0.0), halfSize, uCornerPower),
+        sceneSdSquircle(local + float2(0.0, eps), halfSize, uCornerPower) - sceneSdSquircle(local - float2(0.0, eps), halfSize, uCornerPower)
+    );
+    float gLen = length(g);
+    float2 n = (gLen > 1e-5) ? (g / gLen) : float2(0.0, -1.0);
+    float axisFade = smoothstep(0.15, 0.80, gLen / (2.0 * eps));
+
+    float depth = max(-d, 0.0);
+    float inradius = min(halfSize.x, halfSize.y);
+    float aspect = max(halfSize.x, halfSize.y) / max(inradius, 1.0);
+    float domeWeight = (uExtraCount > 0.5) ? 0.0 :
+        smoothstep(1.5, 3.0, aspect) * smoothstep(0.75, 1.0, uRefractBand / max(inradius, 1.0));
+
+    float opticalDepth = depth;
+    float2 nRefract = n;
+    if (domeWeight > 0.001) {
+        float2 q = p / max(halfSize, float2(1.0));
+        float2 q2 = q * q;
+        float domeR = sqrt(clamp(q2.x + q2.y - q2.x * q2.y, 0.0, 1.0));
+        opticalDepth = mix(depth, (1.0 - domeR) * uRefractBand, domeWeight);
+        float2 dGrad = float2(q.x * (1.0 - q2.y), q.y * (1.0 - q2.x));
+        float dLen = length(dGrad);
+        if (dLen > 1e-4) nRefract = normalize(mix(n, dGrad / dLen, domeWeight));
+        axisFade = mix(axisFade, 1.0, domeWeight);
+    }
+
+    float e = clamp(opticalDepth / max(uRefractBand, 1.0), 0.0, 1.0);
+    float pw = max(uBevelPower, 1.5);
+    float slope = bevelSlope(e, pw);
+    float slopeLight = (domeWeight > 0.001) ? bevelSlope(clamp(depth / max(uRefractBand, 1.0), 0.0, 1.0), pw) : slope;
+
+    float bend = snellShift(slope, uIor) / max(snellShift(bevelSlope(0.0, pw), uIor), 1e-4);
+    bend *= smoothstep(1.0, 0.72, e) * axisFade * smoothstep(0.0, 1.5, depth);
+    bend = clamp(bend, 0.0, 1.0);
+
+    // Interior gentle lens magnification + fingertip Gaussian swell
+    float2 qNorm = p / max(halfSize, float2(1.0));
+    float r2 = clamp(dot(qNorm, qNorm), 0.0, 1.0);
+    float shoulder = 1.0 - r2;
+    float2 base = coord - p * (clamp(uLensZoom, -0.4, 0.6) * shoulder * shoulder);
+
+    float2 touchDelta = local - uTouch;
+    float touchSigma = max(min(uSize.x, uSize.y), 1.0);
+    float touchFall = exp(-dot(touchDelta, touchDelta) / (touchSigma * touchSigma)) * clamp(uPress, 0.0, 2.0);
+    base -= touchDelta * (touchFall * 0.17);
+
+    float2 push = nRefract * (uOutward * bend * uRefractDepth * (1.0 + 0.25 * touchFall));
+    float split = uAberration * bend;
+    float2 pushR = push * (1.0 - split);
+    float2 pushB = push * (1.0 + split);
+
+    // Displacement-first crisp rim sample with subtle normal-aligned anti-aliasing smear
+    float2 sm = nRefract * (0.75 * uDensity * bend);
+    float3 sharp = float3(
+        (sampleBackdropRgb(base + pushR).r + sampleBackdropRgb(base + pushR - sm).r + sampleBackdropRgb(base + pushR + sm).r) / 3.0,
+        (sampleBackdropRgb(base + push).g  + sampleBackdropRgb(base + push - sm).g  + sampleBackdropRgb(base + push + sm).g)  / 3.0,
+        (sampleBackdropRgb(base + pushB).b + sampleBackdropRgb(base + pushB - sm).b + sampleBackdropRgb(base + pushB + sm).b) / 3.0
+    );
+
+    // Dual-kernel iOS 27 material: B_wide (tone) + k*(D_fine - B_wide) + c*|D_fine - B_wide|
+    float2 rot = tapRot(coord);
+    float fineRad = mix(0.35 * uDensity, min(uBlurPx * 0.12, 2.0 * uDensity), e);
+    float3 detailCopy = (fineRad < 0.75 * uDensity) ? detailCross(base + push, fineRad) : scatterFine(base + push, fineRad, rot);
+    float3 wideCopy = (uBlurPx > 1.0) ? sampleWideRgb(base + push * 0.35) : detailCopy;
+    float wideBlend = smoothstep(0.5, 10.0 * uDensity, uBlurPx);
+
+    float wideLuma = luma709(wideCopy);
+    float darkFactor = (uDarkMode < -0.5) ? smoothstep(0.42, 0.58, 1.0 - wideLuma) : clamp(uDarkMode, 0.0, 1.0);
+
+    float fineShare = mix(0.275, 0.85, clamp(uTransparency, 0.0, 1.0));
+    if (uIsClear > 0.5) fineShare = mix(0.75, 0.96, uTransparency);
+    float detailLift = mix(0.22, -0.22, darkFactor) * (1.0 - uIsClear * 0.85) * (1.0 - uTransparency * 0.4);
+
+    float3 dual = wideCopy + (detailCopy - wideCopy) * fineShare + abs(detailCopy - wideCopy) * detailLift;
+    float3 interior = mix(detailCopy, dual, wideBlend);
+
+    // Preserve crisp refracted rim & chromatic fringe near the outline
+    float rimSharp = (1.0 - e) * (1.0 - e);
+    float3 bg = mix(interior, sharp, rimSharp * mix(0.65, 0.95, uIsClear));
+
+    // iOS 27 measured tone + P3->sRGB chroma boost (about luma y)
+    float y = luma709(bg);
+    float3 chromaDiff = bg - float3(y);
+    float3 g0 = mix(float3(0.988, 0.952, 0.979), float3(1.317, 1.256, 1.314), darkFactor);
+    float3 g1 = mix(float3(-0.076, 0.028, -0.045), float3(-0.427, -0.351, -0.429), darkFactor);
+
+    float tintStr = clamp(uTint.a * (1.0 - uTransparency * 0.55) * mix(1.0, 0.28, uIsClear), 0.0, 0.92);
+    float3 col = mix(bg, uTint.rgb, tintStr);
+
+    // Concave dark tone bow: uToneCurve * x * (1 - x) + fixed 31.7/255 dark lift
+    float bow = mix(0.0, 0.396, darkFactor) * (1.0 - uIsClear * 0.85) * (1.0 - uTransparency * 0.45);
+    col += bow * bg * (float3(1.0) - bg);
+    float chromaWeight = (1.0 - uIsClear * 0.65) * 0.85;
+    float3 chromaGain = (g0 + g1 * y) - float3(1.0 - tintStr);
+    col += chromaWeight * (chromaDiff * chromaGain);
+    col += float3(mix(0.022, 0.124, darkFactor) * (1.0 - uIsClear * 0.80) * (1.0 - uTransparency * 0.4));
+
+    // Rim lighting: Schlick Fresnel + directional chamfer/bead specular + counter lobe + Oklab highlight
+    float bevelW = max(2.2 * uDensity, uRefractBand * 0.14);
+    float bevelBand = smoothstep(bevelW, -0.2 * bevelW, depth);
+    float innerShadow = max(smoothstep(bevelW * 2.4, 0.0, depth) - bevelBand, 0.0);
+    col -= float3(innerShadow * 0.07 * uShadow);
+
+    float cosI = inversesqrt(1.0 + slopeLight * slopeLight);
+    float f0 = (uIor - 1.0) / (uIor + 1.0);
+    f0 = f0 * f0;
+    float fresnel = f0 + (1.0 - f0) * pow(max(1.0 - cosI, 0.0), 5.0);
+
+    float facing = dot(n, -uLight);
+    float faceUp = max(facing, 0.0);
+    float faceDown = max(-facing, 0.0);
+    float lobeUp = 0.47 * pow(max(faceUp, 1e-5), 24.0) + 0.53 * pow(max(faceUp, 1e-5), 2.2);
+    float lobeDown = 0.47 * pow(max(faceDown, 1e-5), 24.0) + 0.53 * pow(max(faceDown, 1e-5), 2.2);
+    float edgeLine = smoothstep(2.0 * uDensity, 0.0, depth) * 0.55 * (lobeUp + 0.72 * lobeDown);
+    float glowTail = 0.055 * exp(-max(depth - 0.67 * bevelW, 0.0) / max(bevelW * 1.4, 1.0)) * (faceUp + 0.6 * faceDown);
+
+    float highlight = ((lobeUp + 0.65 * lobeDown) * bevelBand * 0.34 * uSpecular
+                     + edgeLine * 0.45 * uSpecular
+                     + fresnel * 0.30 * bevelBand * uEdgeIllum
+                     + glowTail * uEdgeIllum);
+    col = applyOklabHighlight(col, highlight, 0.78);
+
+    // Subtle dark inner contour at sides where light is tangential (iOS 27 refinement)
+    float rimDark = clamp(1.0 - abs(depth - 1.2 * uDensity) / max(1.4 * uDensity, 1.0), 0.0, 1.0);
+    float sideMask = 1.0 - abs(facing);
+    col -= float3(rimDark * sideMask * 0.14 * uEdgeIllum);
+
+    // Fingertip illumination from within
+    col += float3(touchFall * 0.075);
+
+    col = clamp(col, float3(0.0), float3(1.0));
+    half4 result = half4(half3(col * coverage), half(coverage));
+    if (outerBand > 0.001 && uEdgeIllum > 0.01) {
+        float side = pow(max(1.0 - abs(dot(n, uLight)), 0.0), 0.75);
+        result.a = clamp(result.a + half(outerBand * 0.16 * uEdgeIllum * mix(0.25, 1.0, side) * (1.0 - coverage)), half(0.0), half(1.0));
+    }
+    return result;
+}

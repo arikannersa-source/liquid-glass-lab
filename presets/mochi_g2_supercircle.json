@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "engine": "mochi_g2",
+  "name": "Mochi \u2014 G2 Supercircle",
+  "description": "feice11 Apple G2 continuous supercircle + dual bevel + erfp ring shadow.",
+  "parameters": {
+    "blurRadiusDp": 14,
+    "shadowIntensity": 0.949999988079071,
+    "lightAngleDegrees": 225,
+    "specularIntensity": 1,
+    "edgeIllumination": 1,
+    "glassThicknessDp": 24,
+    "tintColorArgb": "#FFFAFAFD",
+    "tintOpacity": 0.20000000298023224,
+    "chromaticAberration": 0.2199999988079071,
+    "animationSpeed": 1,
+    "touchDeformation": 1,
+    "appearance": "ADAPTIVE",
+    "lensDistortion": 0.1599999964237213,
+    "edgeCurvature": 1,
+    "transparency": 0.5799999833106995,
+    "variant": "REGULAR",
+    "morphSmoothingDp": 30,
+    "refractionStrength": 1,
+    "cornerRadiusDp": 28,
+    "surfaceProfile": 1
+  }
+}

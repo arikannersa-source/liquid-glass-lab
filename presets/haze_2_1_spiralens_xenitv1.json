@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "engine": "haze_glass",
+  "name": "Haze 2.1 \u2014 Spiralens (xenitV1)",
+  "description": "Chris Banes Haze Glass with xenitV1 Spiralens squircle Android preset.",
+  "parameters": {
+    "blurRadiusDp": 26,
+    "shadowIntensity": 0.800000011920929,
+    "lightAngleDegrees": 225,
+    "specularIntensity": 0.8500000238418579,
+    "edgeIllumination": 1,
+    "glassThicknessDp": 24,
+    "tintColorArgb": "#FFFCFCFE",
+    "tintOpacity": 0.14000000059604645,
+    "chromaticAberration": 0.25,
+    "animationSpeed": 1,
+    "touchDeformation": 1,
+    "appearance": "ADAPTIVE",
+    "lensDistortion": 0.20000000298023224,
+    "edgeCurvature": 1,
+    "transparency": 0.6000000238418579,
+    "variant": "REGULAR",
+    "morphSmoothingDp": 28,
+    "refractionStrength": 1,
+    "cornerRadiusDp": 28,
+    "surfaceProfile": 1
+  }
+}

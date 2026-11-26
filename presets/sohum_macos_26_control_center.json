@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "engine": "sohum_snell",
+  "name": "Sohum \u2014 macOS 26 Control Center",
+  "description": "sohumsuthar BK7 Snell slab + measured 0.58L+34 luminance transfer & 1.72x chroma.",
+  "parameters": {
+    "blurRadiusDp": 12,
+    "shadowIntensity": 0.8500000238418579,
+    "lightAngleDegrees": 225,
+    "specularIntensity": 1,
+    "edgeIllumination": 1,
+    "glassThicknessDp": 22,
+    "tintColorArgb": "#FFFFFFFF",
+    "tintOpacity": 0.1340000033378601,
+    "chromaticAberration": 0.550000011920929,
+    "animationSpeed": 1,
+    "touchDeformation": 1,
+    "appearance": "ADAPTIVE",
+    "lensDistortion": 0.07999999821186066,
+    "edgeCurvature": 1,
+    "transparency": 0.5799999833106995,
+    "variant": "REGULAR",
+    "morphSmoothingDp": 28,
+    "refractionStrength": 1,
+    "cornerRadiusDp": 28,
+    "surfaceProfile": 1
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "engine": "shayann_ios27",
+  "name": "iOS 27 Measured \u2014 Clear",
+  "description": "shayann07 high-clarity refractive glass for photos & rich media.",
+  "parameters": {
+    "blurRadiusDp": 1,
+    "shadowIntensity": 0.699999988079071,
+    "lightAngleDegrees": 270,
+    "specularIntensity": 1.149999976158142,
+    "edgeIllumination": 1,
+    "glassThicknessDp": 24,
+    "tintColorArgb": "#FFF1F1F1",
+    "tintOpacity": 0.07999999821186066,
+    "chromaticAberration": 0.2199999988079071,
+    "animationSpeed": 1,
+    "touchDeformation": 1,
+    "appearance": "ADAPTIVE",
+    "lensDistortion": 0.1599999964237213,
+    "edgeCurvature": 1,
+    "transparency": 0.8999999761581421,
+    "variant": "CLEAR",
+    "morphSmoothingDp": 28,
+    "refractionStrength": 1.149999976158142,
+    "cornerRadiusDp": 28,
+    "surfaceProfile": 1,
+    "outwardSamplingOverride": true
+  }
+}

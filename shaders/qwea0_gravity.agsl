@@ -1,0 +1,232 @@
+
+uniform shader content;
+uniform float2 uSize;
+uniform float uPad;
+uniform float4 uBackdrop;
+uniform float4 uRadii;
+uniform float uDensity;
+uniform float uExtraCount;
+uniform float4 uExtraShapes[5];
+uniform float uExtraRadii[5];
+uniform float uMergeK;
+uniform float2 uTouch;
+uniform float uPress;
+uniform float uShadow;
+
+uniform float uBevel;
+uniform float uRefractPx;
+uniform float uFalloff;
+uniform float uRefractDir;
+uniform float uRimSoft;
+uniform float uLensZoom;
+uniform float uDispersion;
+uniform float2 uLight;
+uniform float uSpecStrength;
+uniform float uEdgeIllum;
+uniform float uTransparency;
+uniform float4 uGlassTint;
+uniform float uSatFactor;
+uniform float uIsClear;
+uniform float uDarkMode;
+
+
+float radiusAt(float2 p, float4 r) {
+    float2 rr = (p.x >= 0.0) ? r.yz : r.xw;
+    return (p.y >= 0.0) ? rr.y : rr.x;
+}
+
+float sdRoundBox(float2 p, float2 halfSize, float radius) {
+    float r = min(radius, min(halfSize.x, halfSize.y));
+    float2 q = abs(p) - halfSize + float2(r);
+    return length(max(q, float2(0.0))) + min(max(q.x, q.y), 0.0) - r;
+}
+
+float sdRoundBox4(float2 p, float2 halfSize, float4 radii) {
+    float r = min(radiusAt(p, radii), min(halfSize.x, halfSize.y));
+    float2 q = abs(p) - halfSize + float2(r);
+    return length(max(q, float2(0.0))) + min(max(q.x, q.y), 0.0) - r;
+}
+
+float lnNorm(float2 v, float n) {
+    if (n <= 2.01) return length(v);
+    float2 av = max(abs(v), float2(1e-6));
+    return pow(pow(av.x, n) + pow(av.y, n), 1.0 / n);
+}
+
+float sdSquircleBox4(float2 p, float2 halfSize, float4 radii, float power) {
+    float r = min(radiusAt(p, radii), min(halfSize.x, halfSize.y));
+    float2 q = abs(p) - halfSize + float2(r);
+    float2 pos = max(q, float2(0.0));
+    float outside = (pos.x > 0.0 || pos.y > 0.0) ? lnNorm(pos, power) : 0.0;
+    return min(max(q.x, q.y), 0.0) + outside - r;
+}
+
+float sminPoly(float a, float b, float k) {
+    if (k <= 0.5) return min(a, b);
+    float h = clamp(0.5 + 0.5 * (b - a) / k, 0.0, 1.0);
+    return mix(b, a, h) - k * h * (1.0 - h);
+}
+
+float sceneSdRound(float2 local, float2 halfSize) {
+    float d = sdRoundBox4(local - halfSize, halfSize, uRadii);
+    for (int i = 0; i < 5; i++) {
+        if (float(i) >= uExtraCount) break;
+        float4 s = uExtraShapes[i];
+        float d2 = sdRoundBox(local - s.xy, s.zw, uExtraRadii[i]);
+        d = sminPoly(d, d2, uMergeK);
+    }
+    return d;
+}
+
+float sceneSdSquircle(float2 local, float2 halfSize, float power) {
+    float d = sdSquircleBox4(local - halfSize, halfSize, uRadii, power);
+    for (int i = 0; i < 5; i++) {
+        if (float(i) >= uExtraCount) break;
+        float4 s = uExtraShapes[i];
+        float d2 = sdSquircleBox4(local - s.xy, s.zw, float4(uExtraRadii[i]), power);
+        d = sminPoly(d, d2, uMergeK);
+    }
+    return d;
+}
+
+float2 sceneNormalRound(float2 local, float2 halfSize, float eps) {
+    float2 ex = float2(eps, 0.0);
+    float2 ey = float2(0.0, eps);
+    float2 g = float2(
+        sceneSdRound(local + ex, halfSize) - sceneSdRound(local - ex, halfSize),
+        sceneSdRound(local + ey, halfSize) - sceneSdRound(local - ey, halfSize)
+    );
+    float len = length(g);
+    return (len > 1e-5) ? (g / len) : float2(0.0, -1.0);
+}
+
+float2 sceneNormalSquircle(float2 local, float2 halfSize, float power, float eps) {
+    float2 ex = float2(eps, 0.0);
+    float2 ey = float2(0.0, eps);
+    float2 g = float2(
+        sceneSdSquircle(local + ex, halfSize, power) - sceneSdSquircle(local - ex, halfSize, power),
+        sceneSdSquircle(local + ey, halfSize, power) - sceneSdSquircle(local - ey, halfSize, power)
+    );
+    float len = length(g);
+    return (len > 1e-5) ? (g / len) : float2(0.0, -1.0);
+}
+
+float3 sampleBackdropRgb(float2 coord) {
+    float2 q = clamp(coord, uBackdrop.xy, uBackdrop.zw);
+    half4 c = content.eval(q);
+    return (c.a > half(0.004)) ? float3(c.rgb / c.a) : float3(0.08, 0.08, 0.10);
+}
+
+float luma709(float3 c) {
+    return dot(c, float3(0.2126, 0.7152, 0.0722));
+}
+
+half4 dropShadowOutside(float dShadow, float shadowStrength, float density) {
+    if (shadowStrength <= 0.005) return half4(0.0);
+    float spread = max(14.0 * density, 4.0);
+    float alpha = (1.0 - smoothstep(-2.0 * density, spread, dShadow)) * 0.22 * clamp(shadowStrength, 0.0, 2.0);
+    return half4(0.0, 0.0, 0.0, half(clamp(alpha, 0.0, 0.65)));
+}
+
+
+half4 main(float2 coord) {
+    float2 local = coord - float2(uPad);
+    float2 halfSize = uSize * 0.5;
+
+    float d = sceneSdRound(local, halfSize);
+    float cov = clamp(0.5 - d / 1.5, 0.0, 1.0);
+    if (cov <= 0.004) {
+        float dSh = sceneSdRound(local - float2(0.0, 5.0 * uDensity), halfSize);
+        return dropShadowOutside(dSh, uShadow, uDensity);
+    }
+
+    float2 n = sceneNormalRound(local, halfSize, 1.0);
+    float t = clamp(-d / max(uBevel, 1.0), 0.0, 1.0);
+    float edge = 1.0 - t;
+    float slope;
+    if (uFalloff > 0.01) {
+        // Exact QWEA0 gravitational-lens inverse-power attenuation
+        float gB = pow(5.0, -uFalloff);
+        slope = (pow(1.0 + 4.0 * t, -uFalloff) - gB) / max(1.0 - gB, 1e-4);
+    } else {
+        slope = edge * edge;
+    }
+
+    float press = clamp(uPress, 0.0, 2.0);
+    float refr = uRefractPx * (1.0 + 0.55 * press);
+    float2 offset = n * (uRefractDir * slope * refr) - (local - halfSize) * (uLensZoom * 0.12);
+
+    // Local liquid touch bulge
+    if (press > 0.001) {
+        float2 tp = local - uTouch;
+        float tr = length(tp);
+        float sigma = max(max(halfSize.x, halfSize.y), 1.0);
+        float bump = press * exp(-(tr * tr) / (sigma * sigma * 0.30));
+        if (tr > 1.0) {
+            offset -= (tp / tr) * (bump * refr * 0.45);
+        }
+    }
+
+    float2 cR = coord + offset * (1.0 - uDispersion * slope);
+    float2 cG = coord + offset;
+    float2 cB = coord + offset * (1.0 + uDispersion * slope);
+
+    // 3-tap normal-aligned rimSoft smear (exact QWEA0 GlassLensRenderer.kt)
+    float3 col;
+    if (uRimSoft > 0.01 && slope > 0.005) {
+        float2 sm = n * (uRimSoft * slope);
+        col = float3(
+            (sampleBackdropRgb(cR).r + sampleBackdropRgb(cR - sm).r + sampleBackdropRgb(cR + sm).r) / 3.0,
+            (sampleBackdropRgb(cG).g + sampleBackdropRgb(cG - sm).g + sampleBackdropRgb(cG + sm).g) / 3.0,
+            (sampleBackdropRgb(cB).b + sampleBackdropRgb(cB - sm).b + sampleBackdropRgb(cB + sm).b) / 3.0
+        );
+    } else {
+        col = float3(
+            sampleBackdropRgb(cR).r,
+            sampleBackdropRgb(cG).g,
+            sampleBackdropRgb(cB).b
+        );
+    }
+
+    // Nonlinear highlight-protected vibrancy curve (exact QWEA0 GlassRuntimeEffects / GlassLensRenderer)
+    float lum = luma709(col);
+    if (uSatFactor <= 1.0) {
+        col = mix(float3(lum), col, uSatFactor);
+    } else {
+        float satNow = max(col.r, max(col.g, col.b)) - min(col.r, min(col.g, col.b));
+        float room = 1.0 - smoothstep(0.2, 0.85, satNow);
+        float hl = 1.0 - smoothstep(0.75, 0.98, lum);
+        float amount = 1.0 + (uSatFactor - 1.0) * mix(0.3, 1.0, room * hl);
+        col = clamp(mix(float3(lum), col, amount), float3(0.0), float3(1.0));
+    }
+
+    // Adaptive luminance tint (Regular) vs clear dimming veil
+    float lumT = luma709(col);
+    float darkFactor = (uDarkMode < -0.5) ? smoothstep(0.35, 0.75, lumT) : (1.0 - clamp(uDarkMode, 0.0, 1.0));
+    float adaptiveAlpha = (0.14 + 0.08 * darkFactor) * (1.0 - uTransparency * 0.45) * (1.0 - uIsClear * 0.80);
+    col = mix(col, float3(1.0 - darkFactor), clamp(adaptiveAlpha, 0.0, 0.65));
+
+    // Absorbing + scattering colored glass medium (exact QWEA0 model)
+    if (uGlassTint.a > 0.002) {
+        float lumTint = luma709(col);
+        float3 absorbed = col * mix(float3(1.0), uGlassTint.rgb, 0.85);
+        float3 scattered = uGlassTint.rgb * (0.38 * (1.0 - lumTint));
+        col = mix(col, clamp(absorbed + scattered, float3(0.0), float3(1.0)), uGlassTint.a * mix(1.0, 0.35, uIsClear));
+    }
+
+    // Symmetric dual-lobe pow(facing, 4.5) hairline + inward glow tail
+    float facing = dot(n, -uLight);
+    float lobeF = pow(max(facing, 1e-5), 4.5);
+    float lobeB = pow(max(-facing, 1e-5), 4.5);
+
+    float bandW = clamp(uBevel * 0.30, 2.0, 8.0 * uDensity);
+    float glowIn = clamp((-d - 1.0 * uDensity) / max(2.0 * uDensity, 1.0), 0.0, 1.0);
+    float glow = glowIn * pow(clamp(1.0 - (-d - 3.0 * uDensity) / max(bandW, 1.0), 0.0, 1.0), 1.5) * cov;
+    float hair = clamp(1.0 - abs(d + 1.0 * uDensity) / max(2.0 * uDensity, 1.0), 0.0, 1.0) * cov;
+    float spec = (hair * 0.72 * (lobeF + lobeB) * uSpecStrength + glow * 0.14 * lobeF * uEdgeIllum)
+        * (1.0 - 0.25 * clamp(press, 0.0, 1.0));
+
+    float innerSh = smoothstep(5.0 * uDensity, 0.0, -d) * (1.0 - hair) * 0.045 * uShadow;
+    col = clamp(col + float3(spec + press * 0.04) - float3(innerSh), float3(0.0), float3(1.0));
+    return half4(half3(col * cov), half(cov));
+}

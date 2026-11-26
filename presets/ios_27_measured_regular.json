@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "engine": "shayann_ios27",
+  "name": "iOS 27 Measured \u2014 Regular",
+  "description": "shayann07 lossless iPhone iOS 27 dual-kernel calibration (default Regular material).",
+  "parameters": {
+    "blurRadiusDp": 15.5,
+    "shadowIntensity": 0.8999999761581421,
+    "lightAngleDegrees": 270,
+    "specularIntensity": 0.949999988079071,
+    "edgeIllumination": 0.949999988079071,
+    "glassThicknessDp": 26,
+    "tintColorArgb": "#FFF1F1F1",
+    "tintOpacity": 0.4399999976158142,
+    "chromaticAberration": 0.14000000059604645,
+    "animationSpeed": 1,
+    "touchDeformation": 1,
+    "appearance": "ADAPTIVE",
+    "lensDistortion": 0.10000000149011612,
+    "edgeCurvature": 1,
+    "transparency": 0.5600000023841858,
+    "variant": "REGULAR",
+    "morphSmoothingDp": 28,
+    "refractionStrength": 1,
+    "cornerRadiusDp": 28,
+    "surfaceProfile": 1,
+    "outwardSamplingOverride": true
+  }
+}

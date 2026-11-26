@@ -1,0 +1,2 @@
+-keep class com.liquidglass.sdk.** { *; }
+-keep class com.liquidglass.lab.** { *; }

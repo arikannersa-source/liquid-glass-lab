@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "engine": "flutter_seaglass",
+  "name": "SeaGlass \u2014 iOS 27 Glint",
+  "description": "whynotmake-it iPhone 17 Pro iOS 27 HDR glint recoloring & tangential dark contour.",
+  "parameters": {
+    "blurRadiusDp": 8,
+    "shadowIntensity": 1,
+    "lightAngleDegrees": 270,
+    "specularIntensity": 1,
+    "edgeIllumination": 1,
+    "glassThicknessDp": 20,
+    "tintColorArgb": "#FFFFFFFF",
+    "tintOpacity": 0.18000000715255737,
+    "chromaticAberration": 0.20000000298023224,
+    "animationSpeed": 1,
+    "touchDeformation": 1,
+    "appearance": "ADAPTIVE",
+    "lensDistortion": 0.14000000059604645,
+    "edgeCurvature": 1,
+    "transparency": 0.5600000023841858,
+    "variant": "REGULAR",
+    "morphSmoothingDp": 28,
+    "refractionStrength": 1,
+    "cornerRadiusDp": 28,
+    "surfaceProfile": 1
+  }
+}
