@@ -27,6 +27,12 @@ jobs:
           yes | sdkmanager --licenses > /dev/null || true
           sdkmanager "platforms;android-37.0" "build-tools;37.0.0"
 
+      - name: Verify Zero-Dependency Plain-Java SDK (javac + d8)
+        run: |
+          mkdir -p /tmp/java_ci/classes /tmp/java_ci/dex
+          javac -source 11 -target 11 -classpath "$ANDROID_HOME/platforms/android-37.0/android.jar" -d /tmp/java_ci/classes liquidglass-java/src/main/java/com/liquidglass/java/*.java examples/PlainJavaGameAndViewIntegration.java
+          "$ANDROID_HOME/build-tools/37.0.0/d8" --min-api 33 --lib "$ANDROID_HOME/platforms/android-37.0/android.jar" --output /tmp/java_ci/dex releases/liquidglass-java-1.2.0.jar
+
       - name: Run Unit & Skia AGSL Optical Execution Tests
         run: ./gradlew test --console=plain
 

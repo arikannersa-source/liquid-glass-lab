@@ -7,6 +7,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
+import java.net.URLClassLoader
 
 class ExportedDeliverablesParityTest {
 
@@ -16,10 +17,11 @@ class ExportedDeliverablesParityTest {
     }
 
     @Test
-    fun standaloneAgslShaderFilesAndJsonPresetsMatchLiveSdkByteForByte() {
+    fun standaloneAgslShaderFilesJavaSdkJarAndJsonPresetsMatchLiveSdkByteForByte() {
         val root = resolveRepoRoot()
         val shadersDir = File(root, "shaders")
         val presetsDir = File(root, "presets")
+        val javaJarFile = File(root, "releases/liquidglass-java-1.2.0.jar")
         val exportMode = System.getenv("EXPORT_SDK_DELIVERABLES") == "1"
 
         if (exportMode) {
@@ -34,7 +36,7 @@ class ExportedDeliverablesParityTest {
             }
         }
 
-        // Strict verification of all 9 standalone .agsl shader source files
+        // 1. Strict verification of all 9 standalone .agsl shader source files
         for (engine in GlassEngineRegistry.all()) {
             val shaderFile = File(shadersDir, "${engine.engineKey}.agsl")
             assertTrue("Missing standalone shader file: ${shaderFile.absolutePath}", shaderFile.exists())
@@ -44,12 +46,30 @@ class ExportedDeliverablesParityTest {
                 engine.agslSource.trimEnd(),
                 diskContent
             )
-            // Verify the standalone .agsl file compiles directly in Skia
             val effect = RuntimeEffect.makeForShader(diskContent)
             effect.close()
         }
 
-        // Strict verification of all built-in .json preset files
+        // 2. Strict byte-for-byte verification of pure-Java SDK JAR (liquidglass-java-1.2.0.jar)
+        assertTrue("Missing plain-Java SDK JAR: ${javaJarFile.absolutePath}", javaJarFile.exists())
+        URLClassLoader(arrayOf(javaJarFile.toURI().toURL()), this::class.java.classLoader).use { loader ->
+            val enumCls = loader.loadClass("com.liquidglass.java.LiquidGlassEngineId")
+            val fromKey = enumCls.getMethod("fromKey", String::class.java)
+            val shadersCls = loader.loadClass("com.liquidglass.java.LiquidGlassShaders")
+            val getShaderSource = shadersCls.getMethod("getShaderSource", enumCls)
+
+            for (engine in GlassEngineRegistry.all()) {
+                val javaEnumVal = fromKey.invoke(null, engine.engineKey)
+                val javaAgsl = (getShaderSource.invoke(null, javaEnumVal) as String).trimEnd()
+                assertEquals(
+                    "Pure-Java LiquidGlassShaders drifted from ${engine.engineKey}",
+                    engine.agslSource.trimEnd(),
+                    javaAgsl
+                )
+            }
+        }
+
+        // 3. Strict verification of all built-in .json preset files
         val presets = GlassEngineRegistry.builtInPresets()
         for (preset in presets) {
             val slug = slugify(preset.name)

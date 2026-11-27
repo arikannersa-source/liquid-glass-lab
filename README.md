@@ -8,8 +8,10 @@ A native Android 17 (API 37) optical evaluation laboratory and standalone Jetpac
 
 - **Installable Laboratory APK**: [`releases/LiquidGlassLab-v1.1.0-release.apk`](releases/LiquidGlassLab-v1.1.0-release.apk)  
   *(R8-optimized, resource-shrunk, signed for immediate sideloading or `adb install -r releases/LiquidGlassLab-v1.1.0-release.apk` on Pixel 11 Pro)*
-- **Standalone Reusable SDK AAR**: [`releases/liquidglass-sdk-1.1.0.aar`](releases/liquidglass-sdk-1.1.0.aar)  
-  *(Zero Material 3 or app-UI dependencies; ready to drop into any Android app)*
+- **Standalone Compose SDK AAR**: [`releases/liquidglass-sdk-1.1.0.aar`](releases/liquidglass-sdk-1.1.0.aar)  
+  *(For Kotlin + Jetpack Compose apps; zero Material 3 or app-UI dependencies)*
+- **Zero-Dependency Pure-Java SDK JAR**: [`releases/liquidglass-java-1.2.0.jar`](releases/liquidglass-java-1.2.0.jar) + [`liquidglass-java/`](liquidglass-java/src/main/java/com/liquidglass/java)  
+  *(For Plain-Java, Android `View`s, custom `Canvas` game loops, and `build.sh` `javac`+`d8` builds — **zero Kotlin, zero Compose, zero Gradle required**)*
 
 ---
 

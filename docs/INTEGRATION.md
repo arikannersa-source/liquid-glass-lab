@@ -4,7 +4,7 @@
 
 ---
 
-## Option A: Drop-in Compiled AAR (`releases/liquidglass-sdk-1.1.0.aar`)
+## Option A: Drop-in Compiled AAR for Kotlin + Jetpack Compose (`releases/liquidglass-sdk-1.1.0.aar`)
 
 Copy `releases/liquidglass-sdk-1.1.0.aar` into your Android project's `app/libs/` folder and add:
 
@@ -18,7 +18,20 @@ dependencies {
 }
 ```
 
-## Option B: Gradle Source Module (`:liquidglass-sdk`)
+## Option B: Pure-Java SDK for Plain-Java / Android `View` / `Canvas` / `build.sh` (`liquidglass-java`)
+
+For projects with **no Kotlin compiler, no Jetpack Compose, or no Gradle** (such as custom `build.sh` builds calling `javac` + `d8` directly against `android.jar`):
+
+1. **Zero-Dependency JAR (`releases/liquidglass-java-1.2.0.jar`) OR Raw `.java` Files**:
+   - Either copy the 5 files in `liquidglass-java/src/main/java/com/liquidglass/java/*.java` directly into your `src/` tree, **OR** pass `releases/liquidglass-java-1.2.0.jar` to `javac -cp "$ANDROID_JAR:libs/liquidglass-java-1.2.0.jar"` and include it in your `d8 --min-api 33` step.
+2. **Custom `View.onDraw(Canvas)` / Game Loops (e.g. Tetris Board, Pieces & HUD)**:
+   - Record the background/board into `RecordingCanvas bg = backdrop.beginRecording(w, h); ... backdrop.endRecordingAndDraw(canvas);`
+   - Render genuine Engine `#1` (`LiquidGlassEngineId.SHAYANN_IOS27`) panels or multi-cell `SubShape` pieces via `LiquidGlassRenderer.drawAtPosition(...)`.
+   - Complete compilable reference: [`examples/PlainJavaGameAndViewIntegration.java`](../examples/PlainJavaGameAndViewIntegration.java).
+3. **Classic Android `View` / `FrameLayout` Hierarchies**:
+   - Wrap background views in `LiquidGlassBackdrop.BackdropFrameLayout` and place `LiquidGlassView` siblings above it.
+
+## Option C: Gradle Source Module (`:liquidglass-sdk`)
 
 Copy the `liquidglass-sdk/` directory into your project and include it in `settings.gradle.kts`:
 
